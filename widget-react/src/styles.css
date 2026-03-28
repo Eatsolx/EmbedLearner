@@ -1,0 +1,291 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-soft: #f7f9fc;
+  --ink: #1f2a37;
+  --muted: #667085;
+  --primary: #1d4f91;
+  --line: rgba(15, 23, 42, 0.08);
+  --line-strong: rgba(15, 23, 42, 0.14);
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f4f6f9 0%, #eef2f6 100%);
+  color: var(--ink);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.widget-shell {
+  display: grid;
+  gap: 12px;
+  min-height: 100vh;
+  padding: 14px;
+}
+
+.widget-header,
+.toolbar,
+.conversation-panel,
+.side-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 4px;
+}
+
+.widget-header h1 {
+  margin: 8px 0 6px;
+  font-size: 1.2rem;
+}
+
+.widget-platform {
+  margin: 0;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.widget-subtitle,
+.toolbar-item label,
+.toolbar-item span,
+.message-item small,
+.info-list,
+.practice-list,
+.section-head span {
+  color: var(--muted);
+}
+
+.widget-meta-box {
+  min-width: 120px;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.widget-meta-box strong,
+.toolbar-item strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.meta-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 1.2fr 0.6fr 0.6fr;
+  gap: 0;
+  border-radius: 4px;
+}
+
+.toolbar-item {
+  padding: 14px 16px;
+  border-right: 1px solid var(--line);
+}
+
+.toolbar-item:last-child {
+  border-right: 0;
+}
+
+.toolbar-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.toolbar-item select,
+.composer textarea {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.toolbar-item select {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 4px;
+}
+
+.toolbar-item.stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.content-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.8fr);
+  gap: 12px;
+}
+
+.conversation-panel,
+.side-section {
+  border-radius: 4px;
+}
+
+.conversation-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.sidebar-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.side-section {
+  padding: 16px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.suggestion-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ghost-button,
+.primary-button {
+  font: inherit;
+}
+
+.ghost-button {
+  border: 1px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.message-list {
+  min-height: 300px;
+  max-height: 420px;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.message-item {
+  max-width: 84%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.message-item.user {
+  justify-self: end;
+  background: #f0f5fb;
+}
+
+.message-item p,
+.message-item small {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.message-item small {
+  display: block;
+  margin-top: 6px;
+}
+
+.composer {
+  display: grid;
+  gap: 10px;
+}
+
+.composer textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: 12px 14px;
+  border-radius: 4px;
+}
+
+.primary-button {
+  justify-self: end;
+  border: 0;
+  border-radius: 4px;
+  padding: 10px 16px;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.practice-list,
+.info-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+@media (max-width: 860px) {
+  .toolbar,
+  .content-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-item {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .toolbar-item:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .widget-header {
+    flex-direction: column;
+  }
+
+  .message-item {
+    max-width: 100%;
+  }
+
+  .primary-button {
+    justify-self: stretch;
+  }
+}
