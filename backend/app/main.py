@@ -1,21 +1,74 @@
-from __future__ import annotations
+"""FastAPI application entry point."""
 
-from copy import deepcopy
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
-from .data import STATE, grade_practice, mock_chat_reply, mock_homework_feedback, snapshot
-from .schemas import AgentConfigUpdate, ChatRequest, CourseCreate, HomeworkSubmitRequest, PracticeSubmitRequest
-from .zhipu import ZhipuError, ask_tutor, review_homework
+from app.database import Base, engine
+from app.api.auth import router as auth_router
+from app.api.chat import router as chat_router
+from app.api.grading import router as grading_router
+from app.api.knowledge import router as knowledge_router
+from app.api.analytics import router as analytics_router
+from app.api.practice import router as practice_router
+from app.api.platform import router as platform_router
+from app.api.agents import router as agents_router
+from app.api.courses import router as courses_router
+from app.api.assignments import router as assignments_router
+
+# Import agent modules to trigger @AgentRegistry.register() decorators
+import app.agents.qa_agent  # noqa: F401
+import app.agents.grader_agent  # noqa: F401
+import app.agents.tutor_agent  # noqa: F401
+import app.agents.analyst_agent  # noqa: F401
+import app.agents.meta_agent  # noqa: F401
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create all tables on startup, dispose engine on shutdown."""
+    # Import all models so Base.metadata is populated
+    import app.models  # noqa: F401
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    await engine.dispose()
 
 
 app = FastAPI(
-    title="A25 Course Assistant Backend",
-    description="课程平台后端服务，支持真实模型问答与本地降级回退。",
+    title="EduAgent API",
+    description="AI-powered education platform backend",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
+
+# ── Rate-limiting middleware (Redis-backed) ──────────────────────
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.url.path.startswith("/api/"):
+            client_ip = request.client.host if request.client else "unknown"
+            from app.services.cache import rate_limit_check
+            try:
+                allowed = await rate_limit_check(
+                    f"rate:{client_ip}", max_requests=100, window=60
+                )
+                if not allowed:
+                    return JSONResponse(
+                        {"detail": "Rate limit exceeded"}, status_code=429
+                    )
+            except Exception:
+                pass  # Redis down → allow request
+        return await call_next(request)
+
+
+app.add_middleware(RateLimitMiddleware)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,118 +77,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Routers
+app.include_router(auth_router)
+app.include_router(chat_router)
+app.include_router(grading_router)
+app.include_router(knowledge_router)
+app.include_router(analytics_router)
+app.include_router(practice_router)
+app.include_router(platform_router)
+app.include_router(agents_router)
+app.include_router(courses_router)
+app.include_router(assignments_router)
 
-@app.get("/api/health")
-def health() -> dict:
+
+@app.get("/health")
+async def health():
     return {"status": "ok"}
-
-
-@app.get("/api/overview")
-def overview() -> dict:
-    return snapshot()["overview"]
-
-
-@app.get("/api/courses")
-def list_courses() -> list[dict]:
-    return snapshot()["courses"]
-
-
-@app.post("/api/courses")
-def create_course(payload: CourseCreate) -> dict:
-    next_id = max(course["id"] for course in STATE["courses"]) + 1
-    course = {
-        "id": next_id,
-        "name": payload.name,
-        "teacher": payload.teacher,
-        "platform": payload.platform,
-        "students": payload.students,
-        "knowledgeCoverage": 0.76,
-        "warningCount": 5,
-        "materials": ["新上传资料待处理.pdf"],
-        "description": payload.description or "新建演示课程",
-    }
-    STATE["courses"].append(course)
-    return {"message": "课程已创建", "course": deepcopy(course)}
-
-
-@app.get("/api/agent/templates")
-def agent_templates() -> list[dict]:
-    return snapshot()["agent_templates"]
-
-
-@app.get("/api/agent/config")
-def agent_config() -> dict:
-    return snapshot()["agent_config"]
-
-
-@app.post("/api/agent/config")
-def update_agent_config(payload: AgentConfigUpdate) -> dict:
-    STATE["agent_config"] = payload.model_dump()
-    return {"message": "设置已保存", "config": snapshot()["agent_config"]}
-
-
-@app.get("/api/analytics/dashboard")
-def dashboard() -> dict:
-    return snapshot()["analytics"]
-
-
-@app.post("/api/chat")
-def chat(payload: ChatRequest) -> dict:
-    course = next((item for item in STATE["courses"] if item["id"] == payload.courseId), None)
-    course_name = course["name"] if course else "通用课程"
-
-    try:
-        result = ask_tutor(course_name, payload.message)
-        return {
-            "courseId": payload.courseId,
-            "reply": result["reply"],
-            "source": [f"智谱 {result['model']}"],
-            "suggestions": ["帮我总结这一题", "给我一个例子", "我还可以怎么练"],
-            "provider": "zhipu",
-        }
-    except ZhipuError:
-        return {
-            "courseId": payload.courseId,
-            **mock_chat_reply(payload.message),
-            "provider": "mock",
-        }
-
-
-@app.post("/api/homework/submit")
-def submit_homework(payload: HomeworkSubmitRequest) -> dict:
-    course = next((item for item in STATE["courses"] if item["id"] == payload.courseId), None)
-    course_name = course["name"] if course else "通用课程"
-
-    try:
-        result = review_homework(course_name, payload.content)
-        return {
-            "courseId": payload.courseId,
-            **result,
-            "provider": "zhipu",
-        }
-    except ZhipuError:
-        return {
-            "courseId": payload.courseId,
-            **mock_homework_feedback(payload.content),
-            "provider": "mock",
-        }
-
-
-@app.get("/api/practice")
-def get_practice() -> dict:
-    return snapshot()["practice_set"]
-
-
-@app.post("/api/practice/submit")
-def submit_practice(payload: PracticeSubmitRequest) -> dict:
-    return grade_practice(payload.answers)
-
-
-@app.get("/api/platforms")
-def list_platforms() -> list[dict]:
-    return snapshot()["platforms"]
-
-
-@app.get("/api/embed")
-def embed_config() -> dict:
-    return snapshot()["embed_demo"]

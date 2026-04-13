@@ -1,22 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "A25 Agent Injector",
-  "version": "0.1.0",
-  "description": "Inject the A25 course assistant widget into Chaoxing and Zhihuishu pages.",
+  "name": "EduAgent AI 助教",
+  "version": "1.0.0",
+  "description": "在任意教学平台注入 AI 助教",
+  "permissions": ["activeTab"],
   "content_scripts": [
     {
       "matches": [
         "*://*.chaoxing.com/*",
-        "*://*.zhihuishu.com/*"
+        "*://*.zhihuishu.com/*",
+        "*://*.mooc.chaoxing.com/*"
       ],
-      "js": [
-        "content.js"
-      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
       "run_at": "document_idle"
     }
   ],
-  "host_permissions": [
-    "http://127.0.0.1:5174/*",
-    "http://127.0.0.1:8000/*"
-  ]
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
 }
